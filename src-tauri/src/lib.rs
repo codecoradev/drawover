@@ -14,7 +14,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 // ---------------------------------------------------------------------------
 
 /// A single drawing stroke rendered on the overlay.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Stroke {
     pub id: String,
     pub points: Vec<(f32, f32)>,
@@ -24,33 +24,12 @@ pub struct Stroke {
     pub opacity: f32,
 }
 
-impl Default for Stroke {
-    fn default() -> Self {
-        Self {
-            id: String::new(),
-            points: Vec::new(),
-            color: "#FF3B30".to_string(),
-            width: 4.0,
-            tool: "pen".to_string(),
-            opacity: 1.0,
-        }
-    }
-}
-
 /// Feature gate — during MVP all features are free.
 /// `is_pro()` returns `true` when the user has NOT activated a pro license,
 /// meaning every feature is unlocked (freemium MVP mode).
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct FeatureGate {
     pub is_pro_activated: bool,
-}
-
-impl Default for FeatureGate {
-    fn default() -> Self {
-        Self {
-            is_pro_activated: false,
-        }
-    }
 }
 
 impl FeatureGate {
@@ -62,6 +41,7 @@ impl FeatureGate {
 }
 
 /// Central application state shared across Tauri commands.
+#[derive(Default)]
 pub struct AppState {
     pub strokes: Vec<Stroke>,
     pub undo_stack: Vec<Stroke>,
@@ -69,19 +49,6 @@ pub struct AppState {
     pub current_stroke: Option<Stroke>,
     pub is_draw_mode: bool,
     pub feature_gate: FeatureGate,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            strokes: Vec::new(),
-            undo_stack: Vec::new(),
-            redo_stack: Vec::new(),
-            current_stroke: None,
-            is_draw_mode: false,
-            feature_gate: FeatureGate::default(),
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
