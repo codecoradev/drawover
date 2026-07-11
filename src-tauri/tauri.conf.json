@@ -20,8 +20,9 @@
         "alwaysOnTop": true,
         "decorations": false,
         "transparent": true,
-        "skipTaskbar": false,
+        "skipTaskbar": true,
         "resizable": false,
+        "visible": false,
         "width": 1920,
         "height": 1080,
         "center": true

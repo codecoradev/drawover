@@ -15,7 +15,6 @@
 	let isDrawing = $state(false);
 	let currentPoints: Point[] = [];
 	let dpr = 1;
-	let pdown = $state(0);
 
 	// Store subscription values for template reactivity
 	let drawModeOn = $state(false);
@@ -53,7 +52,6 @@
 	}
 
 	function onPointerDown(e: PointerEvent): void {
-		pdown++;
 		console.log('[DrawOver] pointerdown', { drawModeOn, button: e.button, type: e.pointerType });
 		if (!drawModeOn) return;
 		if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -294,16 +292,16 @@
 <svelte:window onresize={onResize} />
 
 <main class:draw-mode={drawModeOn}>
-	<div class="debug" style="position:fixed;top:50px;left:8px;z-index:99999;font:12px monospace;background:rgba(0,0,0,0.7);color:#0f0;padding:4px 8px;border-radius:4px;pointer-events:none;">
-		mode:{drawModeOn} tool:{tool} cls:{drawModeOn ? 'CAPTURE' : 'pass'} pdown:{pdown} strokes:{strokes.length}
-	</div>
-
-	<button
-		onclick={toggleDrawMode}
-		style="position:fixed;bottom:24px;left:24px;z-index:99999;padding:8px 14px;background:#3b82f6;color:white;border:none;border-radius:8px;font:14px sans-serif;cursor:pointer;"
-	>
-		{drawModeOn ? '🔴 STOP Draw' : '✏️ Start Draw'}
-	</button>
+	{#if drawModeOn}
+		<button
+			onclick={toggleDrawMode}
+			class="fab-stop"
+			title="Stop drawing (Alt+Shift+D)"
+			aria-label="Stop drawing"
+		>
+			✕
+		</button>
+	{/if}
 
 	<canvas
 		bind:this={canvas}
@@ -343,5 +341,36 @@
 	canvas.capture {
 		pointer-events: auto;
 		cursor: crosshair;
+	}
+
+	.fab-stop {
+		position: fixed;
+		bottom: 24px;
+		left: 24px;
+		z-index: 99999;
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+		border: none;
+		background: rgba(239, 68, 68, 0.9);
+		color: white;
+		font-size: 20px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+		transition: transform 0.15s ease, background 0.15s ease;
+		-webkit-user-select: none;
+		user-select: none;
+	}
+
+	.fab-stop:hover {
+		background: rgba(220, 38, 38, 0.95);
+		transform: scale(1.08);
+	}
+
+	.fab-stop:active {
+		transform: scale(0.95);
 	}
 </style>
