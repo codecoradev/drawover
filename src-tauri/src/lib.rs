@@ -111,10 +111,10 @@ fn do_toggle_draw_mode(state: &Mutex<AppState>, app: &tauri::AppHandle) -> bool 
         let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
         show_overlay(app);
     } else {
-        // Keep clickable so FAB/tray can re-enter draw mode
-        apply_click_through(app, false);
+        apply_click_through(app, true);
+        // Return to accessory (tray-only) so the overlay is click-through
         #[cfg(target_os = "macos")]
-        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+        let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
     }
 
     let _ = app.emit("draw-mode-toggled", mode);
@@ -323,23 +323,8 @@ pub fn run() {
                 })?;
 
             // ----- Initial state: overlay captures mouse so manual toggle works -----
-            #[cfg(target_os = "macos")]
-            let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
-            // Show + focus window so it's frontmost and clickable immediately
-            if let Some(window) = app.get_webview_window("overlay") {
-                if let Ok(Some(monitor)) = window.current_monitor() {
-                    let size = monitor.size();
-                    let pos = monitor.position();
-                    let _ = window.set_position(tauri::PhysicalPosition::new(pos.x, pos.y));
-                    let _ = window.set_size(tauri::PhysicalSize::new(size.width, size.height));
-                }
-                let _ = window.show();
-                let _ = window.set_focus();
-                let _ = window.set_always_on_top(true);
-                let _ = window.set_ignore_cursor_events(false);
-            }
             apply_click_through(app.handle(), false);
-            println!("[DrawOver] startup complete — overlay visible+focused+clickable");
+            println!("[DrawOver] startup complete — overlay clickable");
 
             Ok(())
         })
