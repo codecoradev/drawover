@@ -68,13 +68,11 @@ fn apply_click_through(app: &tauri::AppHandle, ignore: bool) {
 fn show_overlay(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("overlay") {
         // Force window to cover the primary screen (fixes maximized/center conflict on macOS)
-        if let Ok(monitor) = window.current_monitor() {
-            if let Some(monitor) = monitor {
-                let size = monitor.size();
-                let pos = monitor.position();
-                let _ = window.set_position(tauri::PhysicalPosition::new(pos.x, pos.y));
-                let _ = window.set_size(tauri::PhysicalSize::new(size.width, size.height));
-            }
+        if let Ok(Some(monitor)) = window.current_monitor() {
+            let size = monitor.size();
+            let pos = monitor.position();
+            let _ = window.set_position(tauri::PhysicalPosition::new(pos.x, pos.y));
+            let _ = window.set_size(tauri::PhysicalSize::new(size.width, size.height));
         }
         let _ = window.show();
         let _ = window.set_focus();
@@ -308,7 +306,7 @@ pub fn run() {
 
             // ----- Initial state: overlay clickable -----
             #[cfg(target_os = "macos")]
-            let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+            app.set_activation_policy(tauri::ActivationPolicy::Regular);
             apply_click_through(app.handle(), false);
             println!("[DrawOver] startup complete — overlay clickable");
 
