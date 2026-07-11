@@ -52,8 +52,8 @@
 	}
 
 	function onPointerDown(e: PointerEvent): void {
+		console.log('[DrawOver] pointerdown', { drawModeOn, button: e.button, type: e.pointerType });
 		if (!drawModeOn) return;
-		// Only respond to primary button (left click or touch)
 		if (e.button !== 0 && e.pointerType === 'mouse') return;
 		e.preventDefault();
 
@@ -211,6 +211,16 @@
 	}
 
 	// ─── Actions ───
+	async function toggleDrawMode(): Promise<void> {
+		try {
+			const result = await invoke<boolean>('toggle_draw_mode');
+			console.log('[DrawOver] toggle_draw_mode result:', result);
+			drawMode.set(result);
+		} catch (e) {
+			console.error('[DrawOver] toggle_draw_mode failed:', e);
+		}
+	}
+
 	function undo(): void {
 		if (strokes.length === 0) return;
 		strokes = strokes.slice(0, -1);
@@ -241,6 +251,7 @@
 		let unlistenDrawToggle: UnlistenFn | null = null;
 
 		listen<boolean>('draw-mode-toggled', (event) => {
+			console.log('[DrawOver] draw-mode-toggled event:', event.payload);
 			drawMode.set(event.payload);
 		})
 			.then((un) => {
@@ -249,6 +260,14 @@
 			.catch(() => {
 				// Not in Tauri context (e.g. browser dev) — ignore
 			});
+
+		// Sync initial state from Rust backend
+		invoke<boolean>('is_draw_mode')
+			.then((v) => {
+				console.log('[DrawOver] initial is_draw_mode:', v);
+				drawMode.set(v);
+			})
+			.catch(() => {});
 
 		// Clean up on destroy
 		return () => {
@@ -273,6 +292,17 @@
 <svelte:window onresize={onResize} />
 
 <main class:draw-mode={drawModeOn}>
+	<div class="debug" style="position:fixed;top:50px;left:8px;z-index:99999;font:12px monospace;background:rgba(0,0,0,0.7);color:#0f0;padding:4px 8px;border-radius:4px;pointer-events:none;">
+		mode:{drawModeOn} tool:{tool} cls:{drawModeOn ? 'CAPTURE' : 'pass'}
+	</div>
+
+	<button
+		onclick={toggleDrawMode}
+		style="position:fixed;top:8px;right:8px;z-index:99999;padding:8px 14px;background:#3b82f6;color:white;border:none;border-radius:8px;font:14px sans-serif;cursor:pointer;"
+	>
+		{drawModeOn ? '🔴 STOP Draw' : '✏️ Start Draw'}
+	</button>
+
 	<canvas
 		bind:this={canvas}
 		class:capture={drawModeOn}
