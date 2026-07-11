@@ -11,7 +11,9 @@
 	let { onundo, onclear, onexit }: Props = $props();
 
 	// --- Draggable toolbar state ---
-	let position = $state<Point>({ x: 24, y: 24 });
+	// Start centered vertically on the right edge of the screen.
+	let position = $state<Point>({ x: 0, y: 0 });
+	let positioned = $state(false);
 	let dragging = $state(false);
 	let dragOffset: Point = { x: 0, y: 0 };
 
@@ -29,8 +31,21 @@
 		}, FADE_DELAY);
 	}
 
-	// Start auto-fade on mount
+	// Place toolbar at right-center on first layout.
+	function initPosition(): void {
+		if (positioned) return;
+		const tbW = 52; // approx toolbar width
+		const tbH = 380; // approx toolbar height
+		position = {
+			x: Math.max(16, window.innerWidth - tbW - 24),
+			y: Math.max(16, Math.round((window.innerHeight - tbH) / 2))
+		};
+		positioned = true;
+	}
+
+	// Start auto-fade + initial position on mount
 	$effect(() => {
+		initPosition();
 		resetFade();
 		return () => {
 			if (fadeTimer) clearTimeout(fadeTimer);
@@ -50,7 +65,7 @@
 	function onPointerMove(e: PointerEvent): void {
 		if (!dragging) return;
 		position = {
-			x: Math.max(0, Math.min(window.innerWidth - 100, e.clientX - dragOffset.x)),
+			x: Math.max(0, Math.min(window.innerWidth - 52, e.clientX - dragOffset.x)),
 			y: Math.max(0, Math.min(window.innerHeight - 60, e.clientY - dragOffset.y))
 		};
 	}
@@ -155,9 +170,10 @@
 	.toolbar {
 		position: fixed;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		gap: 4px;
-		padding: 6px 8px;
+		padding: 8px 6px;
 		border-radius: 16px;
 		background: rgba(30, 30, 36, 0.72);
 		backdrop-filter: blur(20px) saturate(180%);
@@ -236,10 +252,10 @@
 	}
 
 	.divider {
-		width: 1px;
-		height: 22px;
+		width: 22px;
+		height: 1px;
 		background: rgba(255, 255, 255, 0.15);
-		margin: 0 2px;
+		margin: 2px 0;
 		flex-shrink: 0;
 	}
 

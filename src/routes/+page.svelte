@@ -300,7 +300,7 @@
 
 	<button
 		onclick={toggleDrawMode}
-		style="position:fixed;top:8px;right:8px;z-index:99999;padding:8px 14px;background:#3b82f6;color:white;border:none;border-radius:8px;font:14px sans-serif;cursor:pointer;"
+		style="position:fixed;bottom:24px;left:24px;z-index:99999;padding:8px 14px;background:#3b82f6;color:white;border:none;border-radius:8px;font:14px sans-serif;cursor:pointer;"
 	>
 		{drawModeOn ? '🔴 STOP Draw' : '✏️ Start Draw'}
 	</button>
