@@ -111,10 +111,11 @@ fn do_toggle_draw_mode(state: &Mutex<AppState>, app: &tauri::AppHandle) -> bool 
         let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
         show_overlay(app);
     } else {
-        apply_click_through(app, true);
-        // Return to accessory (tray-only) so the overlay is click-through
+        // Keep overlay clickable (not click-through) so the manual toggle button
+        // can re-enter draw mode. Global shortcut/tray are the production paths.
+        apply_click_through(app, false);
         #[cfg(target_os = "macos")]
-        let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
     }
 
     let _ = app.emit("draw-mode-toggled", mode);
@@ -322,9 +323,10 @@ pub fn run() {
                     e
                 })?;
 
-            // ----- Initial state: overlay click-through -----
-            apply_click_through(app.handle(), true);
-            println!("[DrawOver] startup complete — overlay click-through, awaiting Option+Shift+D");
+            // ----- Initial state: overlay captures mouse so manual toggle button works -----
+            // (click-through is applied only after the user exits draw mode)
+            apply_click_through(app.handle(), false);
+            println!("[DrawOver] startup complete — overlay clickable, awaiting toggle");
 
             Ok(())
         })

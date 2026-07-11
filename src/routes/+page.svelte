@@ -280,6 +280,23 @@
 		};
 	});
 
+	// ─── Keyboard shortcuts ───
+	function onKeydown(e: KeyboardEvent): void {
+		// Esc always exits draw mode
+		if (e.key === 'Escape') {
+			if (drawModeOn) exitDrawMode();
+			return;
+		}
+		if (!drawModeOn) return;
+		// Tool shortcuts (no modifier)
+		if (e.metaKey || e.ctrlKey || e.altKey) return;
+		const k = e.key.toLowerCase();
+		if (k === 'p') currentTool.set('pen');
+		else if (k === 'h') currentTool.set('highlighter');
+		else if (k === 'e') currentTool.set('eraser');
+		else if (k === 'z' && (e.metaKey || e.ctrlKey)) undo();
+	}
+
 	// ─── Redraw when draw mode toggles ───
 	$effect(() => {
 		// Re-render when strokes change or draw mode changes
@@ -289,19 +306,19 @@
 	});
 </script>
 
-<svelte:window onresize={onResize} />
+<svelte:window onresize={onResize} onkeydown={onKeydown} />
 
 <main class:draw-mode={drawModeOn}>
-	<div class="debug" style="position:fixed;top:50px;left:8px;z-index:99999;font:12px monospace;background:rgba(0,0,0,0.7);color:#0f0;padding:4px 8px;border-radius:4px;pointer-events:none;">
-		mode:{drawModeOn} tool:{tool} cls:{drawModeOn ? 'CAPTURE' : 'pass'}
-	</div>
-
-	<button
-		onclick={toggleDrawMode}
-		style="position:fixed;top:8px;right:8px;z-index:99999;padding:8px 14px;background:#3b82f6;color:white;border:none;border-radius:8px;font:14px sans-serif;cursor:pointer;"
-	>
-		{drawModeOn ? '🔴 STOP Draw' : '✏️ Start Draw'}
-	</button>
+	{#if !drawModeOn}
+		<button
+			class="fab"
+			onclick={toggleDrawMode}
+			aria-label="Start draw mode"
+			title="Start drawing"
+		>
+			✏️
+		</button>
+	{/if}
 
 	<canvas
 		bind:this={canvas}
@@ -341,5 +358,35 @@
 	canvas.capture {
 		pointer-events: auto;
 		cursor: crosshair;
+	}
+
+	.fab {
+		position: fixed;
+		bottom: 24px;
+		right: 24px;
+		z-index: 9999;
+		width: 52px;
+		height: 52px;
+		border-radius: 50%;
+		border: none;
+		background: rgba(30, 30, 36, 0.72);
+		backdrop-filter: blur(20px) saturate(180%);
+		-webkit-backdrop-filter: blur(20px) saturate(180%);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+		color: #fff;
+		font-size: 22px;
+		line-height: 1;
+		cursor: pointer;
+		transition: transform 0.15s ease, background 0.15s ease;
+	}
+
+	.fab:hover {
+		background: rgba(99, 162, 255, 0.5);
+		transform: scale(1.08);
+	}
+
+	.fab:active {
+		transform: scale(0.94);
 	}
 </style>
