@@ -7,7 +7,7 @@ use tauri::{
     tray::TrayIconBuilder,
     Emitter, Manager,
 };
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
+// global shortcut disabled during dev
 
 // ---------------------------------------------------------------------------
 // Data structures
@@ -126,13 +126,12 @@ fn do_toggle_draw_mode(state: &Mutex<AppState>, app: &tauri::AppHandle) -> bool 
 // ---------------------------------------------------------------------------
 
 /// Toggle draw mode on/off.
-/// When ON: overlay visible, mouse events captured.
-/// When OFF: overlay click-through, mouse events pass through.
 #[tauri::command]
 fn toggle_draw_mode(
     state: tauri::State<'_, Mutex<AppState>>,
     app: tauri::AppHandle,
 ) -> Result<bool, String> {
+    println!("[DrawOver] toggle_draw_mode COMMAND called");
     Ok(do_toggle_draw_mode(state.inner(), &app))
 }
 
@@ -302,25 +301,24 @@ pub fn run() {
             // ----- Tray icon -----
             setup_tray(handle)?;
 
-            // ----- Global shortcut: Option+Shift+D (Alt+Shift+D) -----
-            let shortcut: Shortcut = "Alt+Shift+D".parse()?;
-            println!("[DrawOver] registering global shortcut: {:?}", shortcut);
-
-            // Register + attach handler in one call
-            handle
-                .global_shortcut()
-                .on_shortcut(shortcut.clone(), move |app, _shortcut, event| {
-                    println!("[DrawOver] shortcut event: state={:?}", event.state);
-                    if event.state == ShortcutState::Pressed {
-                        let state = app.state::<Mutex<AppState>>();
-                        let new_mode = do_toggle_draw_mode(state.inner(), app);
-                        println!("[DrawOver] draw mode toggled -> {}", new_mode);
-                    }
-                })
-                .map_err(|e| {
-                    eprintln!("[DrawOver] FAILED to register global shortcut: {}", e);
-                    e
-                })?;
+            // ----- Global shortcut: DISABLED during dev (phantom toggle issue) -----
+            // Re-enable once focus/permission issues are resolved.
+            // let shortcut: Shortcut = "Alt+Shift+D".parse()?;
+            // println!("[DrawOver] registering global shortcut: {:?}", shortcut);
+            // handle
+            //     .global_shortcut()
+            //     .on_shortcut(shortcut.clone(), move |app, _shortcut, event| {
+            //         println!("[DrawOver] shortcut event: state={:?}", event.state);
+            //         if event.state == ShortcutState::Pressed {
+            //             let state = app.state::<Mutex<AppState>>();
+            //             let new_mode = do_toggle_draw_mode(state.inner(), app);
+            //             println!("[DrawOver] draw mode toggled -> {}", new_mode);
+            //         }
+            //     })
+            //     .map_err(|e| {
+            //         eprintln!("[DrawOver] FAILED to register global shortcut: {}", e);
+            //         e
+            //     })?;
 
             // ----- Initial state: overlay captures mouse so manual toggle works -----
             apply_click_through(app.handle(), false);
