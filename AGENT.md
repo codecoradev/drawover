@@ -15,3 +15,8 @@
 ### Branch
 - Naming: `fix/<desc>`, `feat/<desc>`, `checkpoint/<desc>`
 - Base PR default: `develop`
+
+## Workflow — WAJIB
+- **JANGAN commit/push/PR sebelum user confirm perubahan working di app.**
+- Test lokal + user verify dulu, baru commit.
+- Kalau gagal/berubah, jangan langsung commit ulang.
