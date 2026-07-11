@@ -12,9 +12,7 @@
 	let { onundo, onclear, onexit }: Props = $props();
 
 	// --- Draggable toolbar state ---
-	// Start centered vertically on the right edge of the screen.
-	let position = $state<Point>({ x: 0, y: 0 });
-	let positioned = $state(false);
+	let position = $state<Point>({ x: 24, y: 24 });
 	let dragging = $state(false);
 	let dragOffset: Point = { x: 0, y: 0 };
 
@@ -32,21 +30,8 @@
 		}, FADE_DELAY);
 	}
 
-	// Place toolbar at right-center on first layout.
-	function initPosition(): void {
-		if (positioned) return;
-		const tbW = 48; // approx toolbar width (incl padding)
-		const tbH = 360; // approx toolbar height (conservative)
-		position = {
-			x: Math.max(16, window.innerWidth - tbW - 24),
-			y: Math.max(16, Math.round((window.innerHeight - tbH) / 2))
-		};
-		positioned = true;
-	}
-
-	// Start auto-fade + initial position on mount
+	// Start auto-fade on mount
 	$effect(() => {
-		initPosition();
 		resetFade();
 		return () => {
 			if (fadeTimer) clearTimeout(fadeTimer);
@@ -66,7 +51,7 @@
 	function onPointerMove(e: PointerEvent): void {
 		if (!dragging) return;
 		position = {
-			x: Math.max(0, Math.min(window.innerWidth - 48, e.clientX - dragOffset.x)),
+			x: Math.max(0, Math.min(window.innerWidth - 100, e.clientX - dragOffset.x)),
 			y: Math.max(0, Math.min(window.innerHeight - 60, e.clientY - dragOffset.y))
 		};
 	}
@@ -91,14 +76,13 @@
 
 	// Auto-subscribe to stores (Svelte 5 $store syntax in template)
 
-	// Shortcut keys shown on hover tooltips. Icon component rendered in template.
-	const tools: { id: Tool; icon: typeof Pen; label: string; key: string }[] = [
-		{ id: 'pen', icon: Pen, label: 'Pen', key: 'P' },
-		{ id: 'highlighter', icon: Highlighter, label: 'Highlighter', key: 'H' },
-		{ id: 'eraser', icon: Eraser, label: 'Eraser', key: 'E' }
+	const tools: { id: Tool; icon: typeof Pen; label: string }[] = [
+		{ id: 'pen', icon: Pen, label: 'Pen' },
+		{ id: 'highlighter', icon: Highlighter, label: 'Highlighter' },
+		{ id: 'eraser', icon: Eraser, label: 'Eraser' }
 	];
 
-	const colors = ['#ef4444', '#facc15', '#22c55e', '#3b82f6'];
+	const colors = ['#ef4444', '#facc15', '#22c55e', '#ffffff'];
 </script>
 
 <svelte:window onpointermove={onPointerMove} />
@@ -114,7 +98,6 @@
 	onpointerenter={resetFade}
 	role="toolbar"
 	aria-label="DrawOver toolbar"
-	aria-orientation="vertical"
 >
 	<!-- Tool buttons -->
 	{#each tools as tool (tool.id)}
@@ -126,10 +109,9 @@
 			onclick={() => selectTool(tool.id)}
 			aria-label={tool.label}
 			aria-pressed={$currentTool === tool.id}
-			title="{tool.label} ({tool.key})"
+			title={tool.label}
 		>
-			<Icon size={18} strokeWidth={2} />
-			<span class="keyhint">{tool.key}</span>
+			<Icon size={16} strokeWidth={2} />
 		</button>
 	{/each}
 
@@ -156,20 +138,18 @@
 	<div class="divider"></div>
 
 	<!-- Undo -->
-	<button data-btn class="btn" onclick={onundo} aria-label="Undo" title="Undo (⌘Z)">
-		<Undo2 size={18} strokeWidth={2} />
-		<span class="keyhint">Z</span>
+	<button data-btn class="btn" onclick={onundo} aria-label="Undo" title="Undo">
+		<Undo2 size={16} strokeWidth={2} />
 	</button>
 
 	<!-- Clear all -->
-	<button data-btn class="btn" onclick={onclear} aria-label="Clear all" title="Clear all (⌘⇧⌫)">
-		<Trash2 size={18} strokeWidth={2} />
+	<button data-btn class="btn" onclick={onclear} aria-label="Clear all" title="Clear all">
+		<Trash2 size={16} strokeWidth={2} />
 	</button>
 
 	<!-- Exit -->
-	<button data-btn class="btn exit-btn" onclick={onexit} aria-label="Exit draw mode" title="Exit (Esc)">
-		<X size={18} strokeWidth={2} />
-		<span class="keyhint">Esc</span>
+	<button data-btn class="btn exit-btn" onclick={onexit} aria-label="Exit draw mode" title="Exit">
+		<X size={16} strokeWidth={2} />
 	</button>
 </div>
 
@@ -177,11 +157,10 @@
 	.toolbar {
 		position: fixed;
 		display: flex;
-		flex-direction: column;
 		align-items: center;
 		gap: 4px;
-		padding: 8px 6px;
-		border-radius: 18px;
+		padding: 6px 8px;
+		border-radius: 16px;
 		background: rgba(30, 30, 36, 0.72);
 		backdrop-filter: blur(20px) saturate(180%);
 		-webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -206,16 +185,15 @@
 	}
 
 	.btn {
-		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 34px;
-		height: 34px;
+		width: 32px;
+		height: 32px;
 		border-radius: 10px;
 		border: none;
 		background: transparent;
-		color: rgba(255, 255, 255, 0.85);
+		color: rgba(255, 255, 255, 0.8);
 		font-size: 15px;
 		cursor: pointer;
 		transition: background 0.15s ease, transform 0.1s ease;
@@ -223,7 +201,7 @@
 	}
 
 	.btn:hover {
-		background: rgba(255, 255, 255, 0.14);
+		background: rgba(255, 255, 255, 0.12);
 	}
 
 	.btn:active {
@@ -234,22 +212,6 @@
 		background: rgba(99, 162, 255, 0.3);
 		color: #fff;
 		box-shadow: inset 0 0 0 1px rgba(99, 162, 255, 0.5);
-	}
-
-	/* Keyboard shortcut hint badge, only visible on hover */
-	.keyhint {
-		position: absolute;
-		top: 2px;
-		right: 3px;
-		font: 600 8px ui-monospace, SFMono-Regular, Menlo, monospace;
-		color: rgba(255, 255, 255, 0.45);
-		opacity: 0;
-		transition: opacity 0.15s ease;
-		pointer-events: none;
-	}
-
-	.btn:hover .keyhint {
-		opacity: 1;
 	}
 
 	.color-btn {
@@ -276,10 +238,10 @@
 	}
 
 	.divider {
-		width: 22px;
-		height: 1px;
+		width: 1px;
+		height: 22px;
 		background: rgba(255, 255, 255, 0.15);
-		margin: 2px 0;
+		margin: 0 2px;
 		flex-shrink: 0;
 	}
 

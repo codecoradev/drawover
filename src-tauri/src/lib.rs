@@ -111,8 +111,7 @@ fn do_toggle_draw_mode(state: &Mutex<AppState>, app: &tauri::AppHandle) -> bool 
         let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
         show_overlay(app);
     } else {
-        // Keep overlay clickable (not click-through) so the manual toggle button
-        // can re-enter draw mode. Global shortcut/tray are the production paths.
+        // Keep clickable so FAB/tray can re-enter draw mode
         apply_click_through(app, false);
         #[cfg(target_os = "macos")]
         let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
@@ -323,10 +322,24 @@ pub fn run() {
                     e
                 })?;
 
-            // ----- Initial state: overlay captures mouse so manual toggle button works -----
-            // (click-through is applied only after the user exits draw mode)
+            // ----- Initial state: overlay captures mouse so manual toggle works -----
+            #[cfg(target_os = "macos")]
+            let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+            // Show + focus window so it's frontmost and clickable immediately
+            if let Some(window) = app.get_webview_window("overlay") {
+                if let Ok(Some(monitor)) = window.current_monitor() {
+                    let size = monitor.size();
+                    let pos = monitor.position();
+                    let _ = window.set_position(tauri::PhysicalPosition::new(pos.x, pos.y));
+                    let _ = window.set_size(tauri::PhysicalSize::new(size.width, size.height));
+                }
+                let _ = window.show();
+                let _ = window.set_focus();
+                let _ = window.set_always_on_top(true);
+                let _ = window.set_ignore_cursor_events(false);
+            }
             apply_click_through(app.handle(), false);
-            println!("[DrawOver] startup complete — overlay clickable, awaiting toggle");
+            println!("[DrawOver] startup complete — overlay visible+focused+clickable");
 
             Ok(())
         })
