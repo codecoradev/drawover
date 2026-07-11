@@ -7,7 +7,7 @@ use tauri::{
     tray::TrayIconBuilder,
     Emitter, Manager,
 };
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
+// global shortcut disabled during dev
 
 // ---------------------------------------------------------------------------
 // Data structures
@@ -67,9 +67,24 @@ fn apply_click_through(app: &tauri::AppHandle, ignore: bool) {
 /// Show the overlay window and capture mouse events.
 fn show_overlay(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("overlay") {
+        // Force window to cover the primary screen (fixes maximized/center conflict on macOS)
+        if let Ok(Some(monitor)) = window.current_monitor() {
+            let size = monitor.size();
+            let pos = monitor.position();
+            let _ = window.set_position(tauri::PhysicalPosition::new(pos.x, pos.y));
+            let _ = window.set_size(tauri::PhysicalSize::new(size.width, size.height));
+        }
         let _ = window.show();
         let _ = window.set_focus();
-        let _ = window.set_ignore_cursor_events(false);
+        // Re-assert always-on-top so the overlay sits above every app
+        let _ = window.set_always_on_top(true);
+        let r = window.set_ignore_cursor_events(false);
+        println!(
+            "[DrawOver] show_overlay — focus+ignore_cursor result: {:?}",
+            r
+        );
+    } else {
+        eprintln!("[DrawOver] show_overlay — overlay window not found!");
     }
 }
 
@@ -86,11 +101,18 @@ fn do_toggle_draw_mode(state: &Mutex<AppState>, app: &tauri::AppHandle) -> bool 
         s.is_draw_mode = !s.is_draw_mode;
         s.is_draw_mode
     };
+    println!("[DrawOver] do_toggle_draw_mode -> {}", mode);
 
     if mode {
+        // Become a regular app so the overlay can take focus & capture mouse
+        #[cfg(target_os = "macos")]
+        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
         show_overlay(app);
     } else {
-        apply_click_through(app, true);
+        // Keep clickable so FAB/tray can re-enter draw mode
+        apply_click_through(app, false);
+        #[cfg(target_os = "macos")]
+        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
     }
 
     let _ = app.emit("draw-mode-toggled", mode);
@@ -278,21 +300,15 @@ pub fn run() {
             // ----- Tray icon -----
             setup_tray(handle)?;
 
-            // ----- Global shortcut: Option+Shift+D (Alt+Shift+D) -----
-            let shortcut: Shortcut = "Alt+Shift+D".parse()?;
+            // ----- Global shortcut: DISABLED (phantom toggle) -----
+            // let shortcut: Shortcut = "Alt+Shift+D".parse()?;
+            // handle.global_shortcut().on_shortcut(shortcut, ...)?;
 
-            // Register + attach handler in one call
-            handle
-                .global_shortcut()
-                .on_shortcut(shortcut, move |app, _shortcut, event| {
-                    if event.state == ShortcutState::Pressed {
-                        let state = app.state::<Mutex<AppState>>();
-                        do_toggle_draw_mode(state.inner(), app);
-                    }
-                })?;
-
-            // ----- Initial state: overlay click-through -----
-            apply_click_through(app.handle(), true);
+            // ----- Initial state: overlay clickable -----
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Regular);
+            apply_click_through(app.handle(), false);
+            println!("[DrawOver] startup complete — overlay clickable");
 
             Ok(())
         })
