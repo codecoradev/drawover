@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Tool, Point } from './types';
 	import { drawMode, currentTool, currentColor, currentThickness } from './stores';
+	import { Pen, Highlighter, Eraser, Undo2, Trash2, X } from '@lucide/svelte';
 
 	interface Props {
 		onundo: () => void;
@@ -75,10 +76,10 @@
 
 	// Auto-subscribe to stores (Svelte 5 $store syntax in template)
 
-	const tools: { id: Tool; icon: string; label: string }[] = [
-		{ id: 'pen', icon: '✏️', label: 'Pen' },
-		{ id: 'highlighter', icon: '🖍️', label: 'Highlighter' },
-		{ id: 'eraser', icon: '⌫', label: 'Eraser' }
+	const tools: { id: Tool; icon: typeof Pen; label: string }[] = [
+		{ id: 'pen', icon: Pen, label: 'Pen' },
+		{ id: 'highlighter', icon: Highlighter, label: 'Highlighter' },
+		{ id: 'eraser', icon: Eraser, label: 'Eraser' }
 	];
 
 	const colors = ['#ef4444', '#facc15', '#22c55e', '#ffffff'];
@@ -100,6 +101,7 @@
 >
 	<!-- Tool buttons -->
 	{#each tools as tool (tool.id)}
+		{@const Icon = tool.icon}
 		<button
 			data-btn
 			class="btn tool-btn"
@@ -109,7 +111,7 @@
 			aria-pressed={$currentTool === tool.id}
 			title={tool.label}
 		>
-			{tool.icon}
+			<Icon size={16} strokeWidth={2} />
 		</button>
 	{/each}
 
@@ -137,17 +139,17 @@
 
 	<!-- Undo -->
 	<button data-btn class="btn" onclick={onundo} aria-label="Undo" title="Undo">
-		↩
+		<Undo2 size={16} strokeWidth={2} />
 	</button>
 
 	<!-- Clear all -->
 	<button data-btn class="btn" onclick={onclear} aria-label="Clear all" title="Clear all">
-		🗑
+		<Trash2 size={16} strokeWidth={2} />
 	</button>
 
 	<!-- Exit -->
 	<button data-btn class="btn exit-btn" onclick={onexit} aria-label="Exit draw mode" title="Exit">
-		✕
+		<X size={16} strokeWidth={2} />
 	</button>
 </div>
 
