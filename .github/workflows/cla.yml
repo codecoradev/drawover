@@ -1,0 +1,94 @@
+name: CLA Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: read
+  statuses: write
+
+jobs:
+  cla-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if CLA is signed
+        id: cla-check
+        run: |
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          if [ -f ".github/cla-signatures/${PR_AUTHOR}.md" ]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+            echo "✅ CLA signed by @${PR_AUTHOR}"
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "❌ CLA not signed by @${PR_AUTHOR}"
+          fi
+
+      - name: Comment on PR if CLA not signed
+        if: steps.cla-check.outputs.signed == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const author = context.payload.pull_request.user.login;
+            const body = [
+              `Hi @${author}! 👋`,
+              '',
+              'Thank you for your contribution to DrawOver!',
+              '',
+              'Before we can review and merge your pull request, you need to sign our [Contributor License Agreement (CLA)](../blob/main/CLA.md).',
+              '',
+              '**How to sign:**',
+              '1. Read the [CLA](../blob/main/CLA.md)',
+              '2. Create a new PR adding a file named `' + author + '.md` to `.github/cla-signatures/`',
+              '3. Use the template provided in the CLA document',
+              '',
+              'Once your CLA PR is merged, this check will pass automatically on your next push.',
+              '',
+              '_This comment was posted automatically by the CLA bot._'
+            ].join('\n');
+
+            // Check if we already commented
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const alreadyCommented = comments.data.some(
+              c => c.user.type === 'Bot' && c.body.includes('Contributor License Agreement (CLA)')
+            );
+
+            if (!alreadyCommented) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Set commit status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const signed = '${{ steps.cla-check.outputs.signed }}' === 'true';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: signed ? 'success' : 'error',
+              description: signed ? 'CLA signed' : 'CLA not signed — see comment above',
+              context: 'CLA Check',
+            });
+
+      - name: Fail if CLA not signed
+        if: steps.cla-check.outputs.signed == 'false'
+        run: |
+          echo "❌ CLA not signed. Please sign the CLA before this PR can be merged."
+          exit 1
