@@ -48,6 +48,12 @@
 	}
 
 	// ─── Drawing ───
+	const SHAPE_TOOLS: Tool[] = ['line', 'arrow', 'rectangle', 'ellipse'];
+
+	function isShape(t: Tool): boolean {
+		return SHAPE_TOOLS.includes(t);
+	}
+
 	function getPoint(e: PointerEvent): Point {
 		return { x: e.clientX, y: e.clientY };
 	}
@@ -68,8 +74,13 @@
 		if (!isDrawing) return;
 		e.preventDefault();
 
-		currentPoints.push(getPoint(e));
-		// Draw incrementally: render the last segment(s) for performance
+		const pt = getPoint(e);
+		if (isShape(tool)) {
+			// Shapes only need start + current point
+			currentPoints = [currentPoints[0], pt];
+		} else {
+			currentPoints.push(pt);
+		}
 		renderIncremental();
 	}
 
@@ -81,6 +92,11 @@
 		canvas.releasePointerCapture?.(e.pointerId);
 
 		if (currentPoints.length < 2) {
+			// Shapes need 2 points; ignore tiny drags
+			if (isShape(tool)) {
+				currentPoints = [];
+				return;
+			}
 			// Treat as a dot — create a minimal stroke
 			const p = currentPoints[0];
 			currentPoints = [
@@ -115,7 +131,53 @@
 		}
 	}
 
+	function drawArrowHead(fromX: number, fromY: number, toX: number, toY: number): void {
+		const headLen = Math.max(12, ctx.lineWidth * 2.5);
+		const angle = Math.atan2(toY - fromY, toX - fromX);
+		ctx.beginPath();
+		ctx.moveTo(toX, toY);
+		ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
+		ctx.moveTo(toX, toY);
+		ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+		ctx.stroke();
+	}
+
+	function drawShape(s: Stroke): void {
+		if (s.points.length < 2) return;
+		const a = s.points[0];
+		const b = s.points[s.points.length - 1];
+
+		ctx.beginPath();
+		if (s.tool === 'line') {
+			ctx.moveTo(a.x, a.y);
+			ctx.lineTo(b.x, b.y);
+			ctx.stroke();
+		} else if (s.tool === 'arrow') {
+			ctx.moveTo(a.x, a.y);
+			ctx.lineTo(b.x, b.y);
+			ctx.stroke();
+			drawArrowHead(a.x, a.y, b.x, b.y);
+		} else if (s.tool === 'rectangle') {
+			ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
+		} else if (s.tool === 'ellipse') {
+			const cx = (a.x + b.x) / 2;
+			const cy = (a.y + b.y) / 2;
+			const rx = Math.abs(b.x - a.x) / 2;
+			const ry = Math.abs(b.y - a.y) / 2;
+			ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+			ctx.stroke();
+		}
+	}
+
 	function drawStroke(s: Stroke): void {
+		if (isShape(s.tool)) {
+			ctx.save();
+			setStrokeStyle(s);
+			drawShape(s);
+			ctx.restore();
+			return;
+		}
+
 		if (s.points.length < 2) return;
 
 		ctx.save();
@@ -176,7 +238,18 @@
 
 		const pts = currentPoints;
 
-		if (pts.length === 2) {
+		if (isShape(tool)) {
+			// Live shape preview from the 2 current points
+			const previewStroke: Stroke = {
+				id: 'preview',
+				points: pts,
+				color,
+				width: thickness,
+				tool,
+				opacity: 1
+			};
+			drawShape(previewStroke);
+		} else if (pts.length === 2) {
 			ctx.beginPath();
 			ctx.moveTo(pts[0].x, pts[0].y);
 			ctx.lineTo(pts[1].x, pts[1].y);
