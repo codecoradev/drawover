@@ -37,7 +37,7 @@
 		const tbW = 52; // approx toolbar width
 		const tbH = 380; // approx toolbar height
 		position = {
-			x: Math.max(16, window.innerWidth - tbW - 24),
+			x: 24,
 			y: Math.max(16, Math.round((window.innerHeight - tbH) / 2))
 		};
 		positioned = true;
