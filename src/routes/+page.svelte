@@ -15,7 +15,6 @@
 	let isDrawing = $state(false);
 	let currentPoints: Point[] = [];
 	let dpr = 1;
-	let pdown = $state(0);
 
 	// Store subscription values for template reactivity
 	let drawModeOn = $state(false);
@@ -59,8 +58,6 @@
 	}
 
 	function onPointerDown(e: PointerEvent): void {
-		pdown++;
-		console.log('[DrawOver] pointerdown', { drawModeOn, button: e.button, type: e.pointerType });
 		if (!drawModeOn) return;
 		if (e.button !== 0 && e.pointerType === 'mouse') return;
 		e.preventDefault();
@@ -367,17 +364,6 @@
 <svelte:window onresize={onResize} />
 
 <main class:draw-mode={drawModeOn}>
-	<div class="debug" style="position:fixed;top:50px;left:8px;z-index:99999;font:12px monospace;background:rgba(0,0,0,0.7);color:#0f0;padding:4px 8px;border-radius:4px;pointer-events:none;">
-		mode:{drawModeOn} tool:{tool} cls:{drawModeOn ? 'CAPTURE' : 'pass'} pdown:{pdown} strokes:{strokes.length}
-	</div>
-
-	<button
-		onclick={toggleDrawMode}
-		style="position:fixed;bottom:24px;left:24px;z-index:99999;padding:8px 14px;background:#3b82f6;color:white;border:none;border-radius:8px;font:14px sans-serif;cursor:pointer;"
-	>
-		{drawModeOn ? '🔴 STOP Draw' : '✏️ Start Draw'}
-	</button>
-
 	<canvas
 		bind:this={canvas}
 		class:capture={drawModeOn}
