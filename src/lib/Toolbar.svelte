@@ -11,11 +11,12 @@
 	let { onundo, onclear, onexit }: Props = $props();
 
 	// --- Draggable toolbar state ---
-	// Start centered vertically on the right edge of the screen.
+	// Start centered vertically on the left edge of the screen.
 	let position = $state<Point>({ x: 0, y: 0 });
 	let positioned = $state(false);
 	let dragging = $state(false);
 	let dragOffset: Point = { x: 0, y: 0 };
+	let toolbarEl: HTMLElement | null = null;
 
 	// --- Auto-fade state ---
 	let visible = $state(true);
@@ -34,8 +35,8 @@
 	// Place toolbar at right-center on first layout.
 	function initPosition(): void {
 		if (positioned) return;
-		const tbW = 52; // approx toolbar width
-		const tbH = 380; // approx toolbar height
+		// Measure actual toolbar height after layout; fall back to estimate
+		const tbH = toolbarEl?.offsetHeight ?? 560;
 		position = {
 			x: 24,
 			y: Math.max(16, Math.round((window.innerHeight - tbH) / 2))
@@ -46,6 +47,14 @@
 	// Start auto-fade + initial position on mount
 	$effect(() => {
 		initPosition();
+		// Re-measure after first paint in case layout wasn't ready
+		requestAnimationFrame(() => {
+			if (toolbarEl && positioned) {
+				const tbH = toolbarEl.offsetHeight;
+				const centeredY = Math.max(16, Math.round((window.innerHeight - tbH) / 2));
+				position = { ...position, y: centeredY };
+			}
+		});
 		resetFade();
 		return () => {
 			if (fadeTimer) clearTimeout(fadeTimer);
@@ -96,12 +105,25 @@
 		{ id: 'eraser', icon: '⌫', label: 'Eraser' }
 	];
 
+	const shapes: { id: Tool; icon: string; label: string }[] = [
+		{ id: 'line', icon: '╱', label: 'Line' },
+		{ id: 'arrow', icon: '→', label: 'Arrow' },
+		{ id: 'rectangle', icon: '▭', label: 'Rectangle' },
+		{ id: 'ellipse', icon: '◯', label: 'Ellipse' }
+	];
+
+	function changeThickness(delta: number): void {
+		currentThickness.update((t) => Math.min(20, Math.max(2, t + delta)));
+		resetFade();
+	}
+
 	const colors = ['#ef4444', '#facc15', '#22c55e', '#ffffff'];
 </script>
 
 <svelte:window onpointermove={onPointerMove} />
 
 <div
+	bind:this={toolbarEl}
 	class="toolbar"
 	class:visible
 	class:dragging
@@ -127,6 +149,50 @@
 			{tool.icon}
 		</button>
 	{/each}
+
+	<!-- Divider -->
+	<div class="divider"></div>
+
+	<!-- Shape tools -->
+	{#each shapes as shape (shape.id)}
+		<button
+			data-btn
+			class="btn tool-btn"
+			class:active={$currentTool === shape.id}
+			onclick={() => selectTool(shape.id)}
+			aria-label={shape.label}
+			aria-pressed={$currentTool === shape.id}
+			title={shape.label}
+		>
+			{shape.icon}
+		</button>
+	{/each}
+
+	<!-- Divider -->
+	<div class="divider"></div>
+
+	<!-- Brush size control -->
+	<div class="size-control" data-btn>
+		<button
+			data-btn
+			class="btn size-btn"
+			onclick={() => changeThickness(-2)}
+			aria-label="Decrease brush size"
+			title="Thinner (−)"
+		>
+			−
+		</button>
+		<span class="size-readout" title="Brush size">{$currentThickness}</span>
+		<button
+			data-btn
+			class="btn size-btn"
+			onclick={() => changeThickness(2)}
+			aria-label="Increase brush size"
+			title="Thicker (+)"
+		>
+			+
+		</button>
+	</div>
 
 	<!-- Divider -->
 	<div class="divider"></div>
@@ -266,5 +332,27 @@
 	.exit-btn:hover {
 		background: rgba(255, 80, 80, 0.2);
 		color: #ff6464;
+	}
+
+	.size-control {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.size-readout {
+		font-size: 9px;
+		color: rgba(255, 255, 255, 0.6);
+		font-variant-numeric: tabular-nums;
+		line-height: 1;
+		min-height: 12px;
+		pointer-events: none;
+	}
+
+	.size-btn {
+		font-size: 16px;
+		font-weight: 600;
+		line-height: 1;
 	}
 </style>
